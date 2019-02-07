@@ -5,7 +5,12 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Properties;
 
+import javax.jms.*;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -18,6 +23,7 @@ import javax.swing.border.EmptyBorder;
 
 import messaging.requestreply.RequestReply;
 import model.loan.*;
+import org.apache.activemq.ActiveMQConnectionFactory;
 
 public class LoanClientFrame extends JFrame {
 
@@ -113,7 +119,9 @@ public class LoanClientFrame extends JFrame {
 				
 				LoanRequest request = new LoanRequest(ssn,amount,time);
 				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));	
-				// to do:  send the JMS with request to Loan Broker
+				// todo:  send the JMS with request to Loan Broker
+                sendRequest(request);
+
 			}
 		});
 		GridBagConstraints gbc_btnQueue = new GridBagConstraints();
@@ -135,6 +143,40 @@ public class LoanClientFrame extends JFrame {
 		scrollPane.setViewportView(requestReplyList);	
        
 	}
+
+	private void sendRequest(LoanRequest request){
+	    //todo clean up method, enum for destinations, generic for payloads, move to different class.
+        Connection connection; // to connect to the ActiveMQ
+        Session session; // session for creating messages, producers and
+
+        Destination destination; // reference to a queue/topic destination
+        MessageProducer producer; // for sending messages
+
+        try {
+            ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+
+            connection = connectionFactory.createConnection();
+            connection.start();
+
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+            destination = session.createQueue("queue.loanRequest");
+
+            producer = session.createProducer(destination);
+            producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+
+            Message msg = session.createObjectMessage(request);
+
+            System.out.println("sending msg: "+request.toString());
+            producer.send(msg);
+
+            session.close();
+            connection.close();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+
 	
 	/**
 	 * This method returns the RequestReply line that belongs to the request from requestReplyList (JList). 
