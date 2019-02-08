@@ -5,6 +5,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 
+import javax.jms.Message;
+import javax.jms.MessageListener;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -12,6 +14,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
+import messaging.service.Destinations;
+import messaging.service.MessageService;
 import model.bank.*;
 import model.loan.LoanRequest;
 
@@ -25,6 +29,8 @@ public class LoanBrokerFrame extends JFrame {
 	private JPanel contentPane;
 	private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
 	private JList<JListLine> list;
+
+	private MessageService messageService;
 	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -44,6 +50,13 @@ public class LoanBrokerFrame extends JFrame {
 	 * Create the frame.
 	 */
 	public LoanBrokerFrame() {
+		messageService = new MessageService(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
+			@Override
+			public void onMessage(Message msg) {
+				System.out.println("received message: " + msg);
+				//todo parseMessage
+			}
+		});
 		setTitle("Loan Broker");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);

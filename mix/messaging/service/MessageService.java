@@ -3,6 +3,7 @@ package messaging.service;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.*;
+import java.io.Serializable;
 
 public class MessageService {
 
@@ -15,7 +16,9 @@ public class MessageService {
     MessageProducer producer; // for sending messages
     MessageConsumer consumer; // for receiving messages
 
-    public MessageService(Destinations outgoing, Destinations incomming, MessageListener listener) {
+    MessageListener listener; // listens for messages
+
+    public MessageService(Destinations outgoing, Destinations incoming, MessageListener listener) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
         try{
             connection = connectionFactory.createConnection();
@@ -23,16 +26,28 @@ public class MessageService {
 
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             destination = session.createQueue(outgoing.toString());
-            recieveDestination = session.createQueue(incomming.toString());
+            recieveDestination = session.createQueue(incoming.toString());
 
+            producer = session.createProducer(destination);
+            consumer = session.createConsumer(recieveDestination);
+            consumer.setMessageListener(listener);
 
         } catch (JMSException e){
             e.printStackTrace();
         }
-
-
-        outgoing.toString();
     }
+
+    public boolean sendMessage(Serializable objMsg){
+        try{
+            Message msg = session.createObjectMessage(objMsg);
+            producer.send(msg);
+            return true;
+        } catch (JMSException e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 
     public boolean startConnection(){
         return false;

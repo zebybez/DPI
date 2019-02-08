@@ -5,6 +5,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Serializable;
 import java.util.Properties;
 
 import javax.jms.*;
@@ -22,6 +23,8 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 import messaging.requestreply.RequestReply;
+import messaging.service.Destinations;
+import messaging.service.MessageService;
 import model.loan.*;
 import org.apache.activemq.ActiveMQConnectionFactory;
 
@@ -41,10 +44,20 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
 
+	private MessageService messageService;
 	/**
 	 * Create the frame.
 	 */
 	public LoanClientFrame() {
+		messageService = new MessageService(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY, new MessageListener() {
+			@Override
+			public void onMessage(Message msg) {
+				System.out.println("received message: " + msg);
+				parseMessage(msg);
+
+			}
+		});
+
 		setTitle("Loan Client");
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -115,13 +128,12 @@ public class LoanClientFrame extends JFrame {
 			public void actionPerformed(ActionEvent arg0) {
 				int ssn = Integer.parseInt(tfSSN.getText());
 				int amount = Integer.parseInt(tfAmount.getText());
-				int time = Integer.parseInt(tfTime.getText());				
-				
+				int time = Integer.parseInt(tfTime.getText());
+
 				LoanRequest request = new LoanRequest(ssn,amount,time);
 				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));	
 				// todo:  send the JMS with request to Loan Broker
-                sendRequest(request);
-
+				messageService.sendMessage(request);
 			}
 		});
 		GridBagConstraints gbc_btnQueue = new GridBagConstraints();
@@ -177,6 +189,9 @@ public class LoanClientFrame extends JFrame {
         }
     }
 
+    private void parseMessage(Message objMsg){
+
+	}
 	
 	/**
 	 * This method returns the RequestReply line that belongs to the request from requestReplyList (JList). 
