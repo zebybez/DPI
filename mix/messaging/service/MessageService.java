@@ -20,7 +20,7 @@ public class MessageService {
 
     public MessageService(Destinations outgoing, Destinations incoming, MessageListener listener) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
-        try{
+        try {
             connection = connectionFactory.createConnection();
             connection.start();
 
@@ -32,28 +32,42 @@ public class MessageService {
             consumer = session.createConsumer(recieveDestination);
             consumer.setMessageListener(listener);
 
-        } catch (JMSException e){
+        } catch (JMSException e) {
             e.printStackTrace();
         }
     }
 
-    public boolean sendMessage(Serializable objMsg){
-        try{
+
+    public boolean sendMessage(Serializable objMsg) {
+        try {
             Message msg = session.createObjectMessage(objMsg);
             producer.send(msg);
             return true;
-        } catch (JMSException e){
+        } catch (JMSException e) {
             e.printStackTrace();
             return false;
         }
     }
 
+    public MessageListener getListener() {
+        return listener;
+    }
 
-    public boolean startConnection(){
+    public void setListener(MessageListener listener) {
+        this.listener = listener;
+        try {
+            consumer.setMessageListener(listener);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public boolean startConnection() {
         return false;
     }
 
-    public boolean stopConnection(){
+    public boolean stopConnection() {
         return false;
     }
 
