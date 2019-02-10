@@ -52,7 +52,7 @@ public class LoanClientFrame extends JFrame {
 		messageService = new MessageService(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY, new MessageListener() {
 			@Override
 			public void onMessage(Message msg) {
-				System.out.println("received message: " + msg);
+				System.out.println("loanClient:received message: " + msg);
 				parseMessage(msg);
 
 			}

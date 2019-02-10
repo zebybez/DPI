@@ -20,6 +20,7 @@ public class MessageService {
 
     public MessageService(Destinations outgoing, Destinations incoming, MessageListener listener) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
+        connectionFactory.setTrustAllPackages(true);
         try {
             connection = connectionFactory.createConnection();
             connection.start();

@@ -4,9 +4,13 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.util.ArrayList;
+import java.util.Map;
 
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
+import javax.jms.ObjectMessage;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -17,6 +21,7 @@ import javax.swing.border.EmptyBorder;
 import messaging.service.Destinations;
 import messaging.service.MessageService;
 import model.bank.*;
+import model.loan.LoanReply;
 import model.loan.LoanRequest;
 
 
@@ -29,6 +34,7 @@ public class LoanBrokerFrame extends JFrame {
     private JPanel contentPane;
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
+    private Map<Integer, LoanRequest> loanRequestMap;
 
     private MessageService messageServiceLoanClient;
     private MessageService messageServiceBankClient;
@@ -54,14 +60,14 @@ public class LoanBrokerFrame extends JFrame {
         messageServiceLoanClient = new MessageService(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
             @Override
             public void onMessage(Message msg) {
-                System.out.println("received message: " + msg);
+                System.out.println("loanBroker:received message from loanClient: " + msg);
                 parseLoanRequest(msg);
             }
         });
         messageServiceBankClient = new MessageService(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY, new MessageListener() {
             @Override
             public void onMessage(Message msg) {
-                System.out.println("received message: " + msg);
+                System.out.println("loanBroker:received message from bank: " + msg);
                 parseBankInterestReply(msg);
             }
         });
@@ -94,10 +100,31 @@ public class LoanBrokerFrame extends JFrame {
     private void parseLoanRequest(Message msg) {
         //todo create bankinterestrequest and send it to the bank
         System.out.println("we've arrived chief");
+        ObjectMessage objMsg = (ObjectMessage) msg;
+        try {
+            LoanRequest loanRequest = (LoanRequest) objMsg.getObject();
+            add(loanRequest);
+            BankInterestRequest interestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime(), loanRequest.getSsn());
+            add(loanRequest, interestRequest);
+            messageServiceLoanClient.sendMessage(interestRequest);
+        } catch (JMSException | ClassCastException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void parseBankInterestReply(Message msg) {
-		//todo create loanreply and send it to loanclient
+        //todo create loanreply and send it to loanclient
+        System.out.println("they've returned, chief");
+        ObjectMessage objMsg = (ObjectMessage) msg;
+        try {
+            BankInterestReply reply = (BankInterestReply) objMsg.getObject();
+            add(loanRequestMap.get(reply.getSsn()), reply);
+            LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
+            messageServiceLoanClient.sendMessage(loanReply);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
     }
 
     private JListLine getRequestReply(LoanRequest request) {
@@ -114,6 +141,7 @@ public class LoanBrokerFrame extends JFrame {
 
     public void add(LoanRequest loanRequest) {
         listModel.addElement(new JListLine(loanRequest));
+        loanRequestMap.put(loanRequest.getSsn(), loanRequest);
     }
 
 
