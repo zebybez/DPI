@@ -121,7 +121,7 @@ public class LoanBrokerFrame extends JFrame {
             BankInterestReply reply = (BankInterestReply) objMsg.getObject();
             add(loanRequestMap.get(reply.getSsn()), reply);
             LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
-            messageServiceLoanClient.sendMessage(loanReply);
+            messageServiceBankClient.sendMessage(loanReply);
         } catch (JMSException e) {
             e.printStackTrace();
         }
