@@ -7,8 +7,10 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
+import javax.jms.ObjectMessage;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -120,7 +122,7 @@ public class JMSBankFrame extends JFrame {
                     rr.setReply(reply);
                     list.repaint();
                     messageService.sendMessage(reply);
-                    // todo: sent JMS message with the reply to Loan Broker
+                    //todo: sent JMS message with the reply to Loan Broker
                 }
             }
         });
@@ -133,6 +135,17 @@ public class JMSBankFrame extends JFrame {
 
     private void parseInterestRequest(Message msg) {
         //todo this thing here you know what i mean.
+        ObjectMessage objMsg = (ObjectMessage) msg;
+        BankInterestRequest request = null;
+        try {
+            request = (BankInterestRequest) objMsg.getObject();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+        RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request, null);
+       // JList<RequestReply<BankInterestRequest, BankInterestReply>> list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
+        listModel.addElement(rr);
+
     }
 
 }
