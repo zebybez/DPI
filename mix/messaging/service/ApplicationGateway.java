@@ -10,8 +10,8 @@ import java.util.Map;
 
 public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
-//    private Map<String, OUT> sendItemsMap;
-//    private Map<String, String> receivedItemsMap;
+    private Map<String, OUT> sendItemsMap;
+    private Map<String, IN> receivedItemsMap;
     MessageService messageService;
 
     public ApplicationGateway(Destinations outgoing, Destinations incomming){
@@ -36,7 +36,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         } catch (JMSException e) {
             e.printStackTrace();
         }
-
+        return null;
     }
 
     public IN getObjectFromMsg(Message message){
@@ -60,5 +60,9 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
 
     public void parseMessage(IN message){
 
+    }
+
+    public String getIdByObject(IN object){
+        receivedItemsMap
     }
 }
