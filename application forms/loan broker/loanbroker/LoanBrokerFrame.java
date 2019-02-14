@@ -107,7 +107,7 @@ public class LoanBrokerFrame extends JFrame {
             add(loanRequest);
             BankInterestRequest interestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime(), loanRequest.getSsn());
             add(loanRequest, interestRequest);
-            msgServiceClientToBank.sendMessage(interestRequest);
+            //msgServiceClientToBank.sendMessage(interestRequest);
         } catch (JMSException | ClassCastException e) {
             e.printStackTrace();
         }
@@ -122,7 +122,7 @@ public class LoanBrokerFrame extends JFrame {
             BankInterestReply reply = (BankInterestReply) objMsg.getObject();
             add(loanRequestMap.get(reply.getSsn()), reply);
             LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
-            msgServiceBankToClient.sendMessage(loanReply);
+            //msgServiceBankToClient.sendMessage(loanReply);
         } catch (JMSException e) {
             e.printStackTrace();
         }

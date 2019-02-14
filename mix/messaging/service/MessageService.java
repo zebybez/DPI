@@ -39,10 +39,14 @@ public class MessageService {
     }
 
 
-    public boolean sendMessage(Serializable objMsg) {
+    public Session getSession() {
+        return session;
+    }
+
+    public boolean sendMessage(Message objMsg) {
         try {
-            Message msg = session.createObjectMessage(objMsg);
-            producer.send(msg);
+            String test = objMsg.getJMSMessageID();
+            producer.send(objMsg);
             return true;
         } catch (JMSException e) {
             e.printStackTrace();
