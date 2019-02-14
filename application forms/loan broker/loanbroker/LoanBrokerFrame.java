@@ -4,7 +4,7 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.jms.JMSException;
@@ -36,8 +36,8 @@ public class LoanBrokerFrame extends JFrame {
     private JList<JListLine> list;
     private Map<Integer, LoanRequest> loanRequestMap;
 
-    private MessageService messageServiceLoanClient;
-    private MessageService messageServiceBankClient;
+    private MessageService msgServiceClientToBank;
+    private MessageService msgServiceBankToClient;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -57,20 +57,21 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
-        messageServiceLoanClient = new MessageService(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
+        msgServiceClientToBank = new MessageService(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
             @Override
             public void onMessage(Message msg) {
                 System.out.println("loanBroker:received message from loanClient: " + msg);
                 parseLoanRequest(msg);
             }
         });
-        messageServiceBankClient = new MessageService(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY, new MessageListener() {
+        msgServiceBankToClient = new MessageService(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY, new MessageListener() {
             @Override
             public void onMessage(Message msg) {
                 System.out.println("loanBroker:received message from bank: " + msg);
                 parseBankInterestReply(msg);
             }
         });
+        loanRequestMap = new HashMap<>();
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -106,7 +107,7 @@ public class LoanBrokerFrame extends JFrame {
             add(loanRequest);
             BankInterestRequest interestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime(), loanRequest.getSsn());
             add(loanRequest, interestRequest);
-            messageServiceLoanClient.sendMessage(interestRequest);
+            msgServiceClientToBank.sendMessage(interestRequest);
         } catch (JMSException | ClassCastException e) {
             e.printStackTrace();
         }
@@ -121,7 +122,7 @@ public class LoanBrokerFrame extends JFrame {
             BankInterestReply reply = (BankInterestReply) objMsg.getObject();
             add(loanRequestMap.get(reply.getSsn()), reply);
             LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
-            messageServiceBankClient.sendMessage(loanReply);
+            msgServiceBankToClient.sendMessage(loanReply);
         } catch (JMSException e) {
             e.printStackTrace();
         }

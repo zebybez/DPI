@@ -6,6 +6,8 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.jms.*;
@@ -44,6 +46,7 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
 
+	private Map<Integer, LoanRequest> loanRequestMap;
 	private MessageService messageService;
 	/**
 	 * Create the frame.
@@ -57,9 +60,8 @@ public class LoanClientFrame extends JFrame {
 
 			}
 		});
-
+		loanRequestMap = new HashMap<>();
 		setTitle("Loan Client");
-		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 684, 619);
 		contentPane = new JPanel();
@@ -131,8 +133,8 @@ public class LoanClientFrame extends JFrame {
 				int time = Integer.parseInt(tfTime.getText());
 
 				LoanRequest request = new LoanRequest(ssn,amount,time);
-				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));	
-				// todo:  send the JMS with request to Loan Broker
+				loanRequestMap.put(ssn, request);
+				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));
 				messageService.sendMessage(request);
 			}
 		});
@@ -189,8 +191,17 @@ public class LoanClientFrame extends JFrame {
         }
     }
 
-    private void parseMessage(Message objMsg){
-
+    private void parseMessage(Message msg){
+		ObjectMessage objMsg = (ObjectMessage) msg;
+		try {
+			LoanReply loanReply = (LoanReply) objMsg.getObject();
+			RequestReply rr = getRequestReply(loanRequestMap.get(loanReply.getSsn()));
+			int index = listModel.indexOf(rr);
+			rr.setReply(loanReply);
+			listModel.set(index, rr);
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	/**
