@@ -11,58 +11,113 @@ import java.util.Map;
 public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
     private Map<String, OUT> sendItemsMap;
-    private Map<String, IN> receivedItemsMap;
-    MessageService messageService;
+    private Map<IN, String> receivedItemsMap;
+    private Map<IN, String> receivedItemsCorrelationMap;
+    private MessageService messageService;
+    private Message message;
+    private OUT sendingObj;
 
-    public ApplicationGateway(Destinations outgoing, Destinations incomming){
-       // sendItemsMap = new HashMap<>();
-        messageService = new MessageService(outgoing, incomming, new MessageListener() {
+    public ApplicationGateway(Destinations outgoing, Destinations incoming) {
+        sendItemsMap = new HashMap<>();
+        receivedItemsMap = new HashMap<>();
+        receivedItemsCorrelationMap = new HashMap<>();
+        messageService = new MessageService(outgoing, incoming, new MessageListener() {
             @Override
             public void onMessage(Message message) {
                 parseMessage(getObjectFromMsg(message));
             }
         });
-
-
     }
 
-    public String sendMessage(OUT msg){
+    /***
+     * creates a message to later be sent
+     * @param object the object to put in the message
+     */
+    public void createMessage(OUT object) {
         try {
-            Message message = messageService.getSession().createObjectMessage(msg);
+            sendingObj = object;
+            message = messageService.getSession().createObjectMessage(object);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
 
-          //  sendItemsMap.put(message.getJMSMessageID(), msg);
+    /***
+     * sends the message
+     */
+    public void sendMessage() {
+        try {
+            sendItemsMap.put(message.getJMSMessageID(), sendingObj);
             messageService.sendMessage(message);
+        } catch (NullPointerException e) {
+            System.out.println("instantiate the message first using the \"createMessage\" Method");
+            e.printStackTrace();
+        } catch (JMSException e){
+            e.printStackTrace();
+        }
+    }
+
+    /***
+     * sets the correlation id for the next message sent
+     * @param id the id to set
+     */
+    public void setCorrelationId(String id) {
+        try {
+            message.setJMSCorrelationID(id);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            System.out.println("instantiate the message first using the \"createMessage\" Method");
+            e.printStackTrace();
+        }
+    }
+
+    /***
+     * gets the message id of the last message created
+     * @return the id of the message, or and empty string if it failed
+     */
+    public String getMessageId() {
+        try {
             return message.getJMSMessageID();
+        } catch (JMSException e) {
+            e.printStackTrace();
+        } catch (NullPointerException e) {
+            System.out.println("instantiate the message first using the \"createMessage\" Method");
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    public String getCorrelationIdByObject(IN object){
+        return receivedItemsCorrelationMap.get(object);
+    }
+
+    public String getMessageIdByObject(IN object){
+        return receivedItemsMap.get(object);
+    }
+
+    public OUT getObjectByMessageId(String id){
+        return sendItemsMap.get(id);
+    }
+
+    private IN getObjectFromMsg(Message message) {
+        ObjectMessage objMsg = (ObjectMessage) message;
+        try {
+            IN object = (IN) objMsg.getObject();
+            receivedItemsCorrelationMap.put(object, message.getJMSCorrelationID());
+            receivedItemsMap.put(object, message.getJMSMessageID());
+            return object;
         } catch (JMSException e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    public IN getObjectFromMsg(Message message){
-//        try {
-//            receivedItemsMap.put(message.getJMSMessageID(), message.getJMSCorrelationID());
-//            if(sendItemsMap.containsKey(message.getJMSCorrelationID())){
-//                sendMessage();
-//            }
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
-        ObjectMessage objMsg = (ObjectMessage) message;
-        try{
-            IN object = (IN) objMsg.getObject();
-            //object.setCorrelationId();
-        } catch (JMSException e){
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public void parseMessage(IN message){
-
-    }
-
-    public String getIdByObject(IN object){
-        //todo make getters for the MAPS to get objects AND id's
+    /***
+     * exposes the object gotten from an incoming message to the parent class;
+     * @param object the object in the message
+     */
+    public void parseMessage(IN object) {
+        throw new IllegalStateException("this method should be overridden");
     }
 }

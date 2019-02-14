@@ -33,14 +33,14 @@ public class LoanClientFrame extends JFrame {
 
     private Map<String, LoanRequest> loanRequestMap;
     private MessageService messageService;
-
+	private ApplicationGateway<LoanReply, LoanRequest> appGateway;
     /**
      * Create the frame.
      */
     public LoanClientFrame() {
-        ApplicationGateway<LoanReply, LoanRequest> appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY){
+        appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY){
             @Override
-            public void parseMessage(Serializable message) {
+            public void parseMessage(Serializable object) {
                 //todo implement this shit.
             }
         };
@@ -119,8 +119,9 @@ public class LoanClientFrame extends JFrame {
                 LoanRequest request = new LoanRequest(ssn, amount, time);
 
                 listModel.addElement(new RequestReply<LoanRequest, LoanReply>(request, null));
-                String id = appGateway.sendMessage(request);
-                loanRequestMap.put(id, request);
+				appGateway.createMessage(request);
+                appGateway.sendMessage();
+
             }
         });
         GridBagConstraints gbc_btnQueue = new GridBagConstraints();
@@ -157,18 +158,18 @@ public class LoanClientFrame extends JFrame {
         });
     }
 
-/*    private void parseMessage(Message msg) {
-        ObjectMessage objMsg = (ObjectMessage) msg;
-        try {
-            LoanReply loanReply = (LoanReply) objMsg.getObject();
-            RequestReply rr = getRequestReply(loanRequestMap.get(loanReply.getSsn()));
-            int index = listModel.indexOf(rr);
-            rr.setReply(loanReply);
-            listModel.set(index, rr);
-        } catch (JMSException e) {
-            e.printStackTrace();
-        }
-    }*/
+    private void parseMessage(LoanReply loanReply) {
+//        ObjectMessage objMsg = (ObjectMessage) msg;
+//        try {
+//            listModel.set(index, rr);
+//        } catch (JMSException e) {
+//            e.printStackTrace();
+//        }
+
+		RequestReply rr = getRequestReply(appGateway.getObjectByMessageId(appGateway.getMessageIdByObject(loanReply))));
+		int index = listModel.indexOf(rr);
+		rr.setReply(loanReply);
+    }
 
     /**
      * This method returns the RequestReply line that belongs to the request from requestReplyList (JList).
