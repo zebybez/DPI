@@ -11,7 +11,7 @@ import java.util.Map;
 public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
     private Map<String, OUT> sendItemsMap;
-    private Map<IN, String> receivedItemsMap;
+    private Map<IN, String> receivedItemsIdMap;
     private Map<IN, String> receivedItemsCorrelationMap;
     private MessageService messageService;
     private Message message;
@@ -19,7 +19,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
 
     public ApplicationGateway(Destinations outgoing, Destinations incoming) {
         sendItemsMap = new HashMap<>();
-        receivedItemsMap = new HashMap<>();
+        receivedItemsIdMap = new HashMap<>();
         receivedItemsCorrelationMap = new HashMap<>();
         messageService = new MessageService(outgoing, incoming, new MessageListener() {
             @Override
@@ -93,10 +93,10 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
     }
 
     public String getMessageIdByObject(IN object){
-        return receivedItemsMap.get(object);
+        return receivedItemsIdMap.get(object);
     }
 
-    public OUT getObjectByMessageId(String id){
+    public OUT getSendObjectByMessageId(String id){
         return sendItemsMap.get(id);
     }
 
@@ -105,7 +105,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         try {
             IN object = (IN) objMsg.getObject();
             receivedItemsCorrelationMap.put(object, message.getJMSCorrelationID());
-            receivedItemsMap.put(object, message.getJMSMessageID());
+            receivedItemsIdMap.put(object, message.getJMSMessageID());
             return object;
         } catch (JMSException e) {
             e.printStackTrace();

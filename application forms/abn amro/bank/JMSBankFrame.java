@@ -6,6 +6,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.Serializable;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -21,6 +22,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
 import messaging.service.MessageService;
 import model.bank.*;
@@ -38,8 +40,7 @@ public class JMSBankFrame extends JFrame {
 
     private String quoteId;
 
-    private MessageService messageService;
-    private MessageListener listener;
+    private ApplicationGateway<BankInterestRequest, BankInterestReply> appGateway;
 
     /**
      * Launch the application.
@@ -62,13 +63,12 @@ public class JMSBankFrame extends JFrame {
      */
     public JMSBankFrame() {
         quoteId = "ABN AMRO";
-        listener = new MessageListener() {
+        appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST){
             @Override
-            public void onMessage(Message message) {
-                parseInterestRequest(message);
+            public void parseMessage(Serializable object) {
+
             }
         };
-        messageService = new MessageService(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST, listener);
         setTitle("JMS Bank - ABN AMRO");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -117,11 +117,14 @@ public class JMSBankFrame extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
                 double interest = Double.parseDouble((tfReply.getText()));
-                BankInterestReply reply = new BankInterestReply(interest, quoteId, rr.getRequest().getSsn());
+                BankInterestRequest request = rr.getRequest();
+                BankInterestReply reply = new BankInterestReply(interest, quoteId, request.getSsn());
                 if (rr != null && reply != null) {
                     rr.setReply(reply);
                     list.repaint();
-                    messageService.sendMessage(reply);
+                    appGateway.createMessage(reply);
+                    appGateway.setCorrelationId(appGateway.getMessageIdByObject(request));
+                    appGateway.sendMessage();
                     //todo: sent JMS message with the reply to Loan Broker
                 }
             }

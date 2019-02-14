@@ -3,17 +3,15 @@ package loanclient;
 import messaging.requestreply.RequestReply;
 import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
-import messaging.service.MessageService;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 public class LoanClientFrame extends JFrame {
 
@@ -31,20 +29,18 @@ public class LoanClientFrame extends JFrame {
     private JLabel lblNewLabel_1;
     private JTextField tfTime;
 
-    private Map<String, LoanRequest> loanRequestMap;
-    private MessageService messageService;
-	private ApplicationGateway<LoanReply, LoanRequest> appGateway;
+    private ApplicationGateway<LoanReply, LoanRequest> appGateway;
+
     /**
      * Create the frame.
      */
     public LoanClientFrame() {
-        appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY){
+        appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY) {
             @Override
             public void parseMessage(Serializable object) {
-                //todo implement this shit.
+                LoanClientFrame.this.parseMessage((LoanReply) object);
             }
         };
-        loanRequestMap = new HashMap<>();
         setTitle("Loan Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 684, 619);
@@ -119,7 +115,7 @@ public class LoanClientFrame extends JFrame {
                 LoanRequest request = new LoanRequest(ssn, amount, time);
 
                 listModel.addElement(new RequestReply<LoanRequest, LoanReply>(request, null));
-				appGateway.createMessage(request);
+                appGateway.createMessage(request);
                 appGateway.sendMessage();
 
             }
@@ -166,9 +162,8 @@ public class LoanClientFrame extends JFrame {
 //            e.printStackTrace();
 //        }
 
-		RequestReply rr = getRequestReply(appGateway.getObjectByMessageId(appGateway.getMessageIdByObject(loanReply))));
-		int index = listModel.indexOf(rr);
-		rr.setReply(loanReply);
+        RequestReply rr = getRequestReply(appGateway.getSendObjectByMessageId(appGateway.getMessageIdByObject(loanReply)));
+        rr.setReply(loanReply);
     }
 
     /**
