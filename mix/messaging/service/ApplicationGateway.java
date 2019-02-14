@@ -63,6 +63,6 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
     }
 
     public String getIdByObject(IN object){
-        receivedItemsMap
+        return null;
     }
 }
