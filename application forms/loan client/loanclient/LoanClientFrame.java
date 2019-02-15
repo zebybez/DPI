@@ -162,7 +162,7 @@ public class LoanClientFrame extends JFrame {
 //            e.printStackTrace();
 //        }
 
-        RequestReply rr = getRequestReply(appGateway.getSendObjectByMessageId(appGateway.getMessageIdByObject(loanReply)));
+        RequestReply rr = getRequestReply(appGateway.getSendObjectByMessageId(appGateway.getMessageIdByReceivedObject(loanReply)));
         rr.setReply(loanReply);
     }
 

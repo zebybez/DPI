@@ -10,7 +10,6 @@ import java.io.Serializable;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
-import javax.jms.MessageListener;
 import javax.jms.ObjectMessage;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
@@ -24,7 +23,6 @@ import javax.swing.border.EmptyBorder;
 
 import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
-import messaging.service.MessageService;
 import model.bank.*;
 import messaging.requestreply.RequestReply;
 
@@ -66,7 +64,7 @@ public class JMSBankFrame extends JFrame {
         appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST){
             @Override
             public void parseMessage(Serializable object) {
-
+                parseInterestRequest((BankInterestRequest) object);
             }
         };
         setTitle("JMS Bank - ABN AMRO");
@@ -123,7 +121,7 @@ public class JMSBankFrame extends JFrame {
                     rr.setReply(reply);
                     list.repaint();
                     appGateway.createMessage(reply);
-                    appGateway.setCorrelationId(appGateway.getMessageIdByObject(request));
+                    appGateway.setCorrelationId(appGateway.getMessageIdByReceivedObject(request));
                     appGateway.sendMessage();
                     //todo: sent JMS message with the reply to Loan Broker
                 }
@@ -136,15 +134,15 @@ public class JMSBankFrame extends JFrame {
         contentPane.add(btnSendReply, gbc_btnSendReply);
     }
 
-    private void parseInterestRequest(Message msg) {
+    private void parseInterestRequest(BankInterestRequest request) {
         //todo this thing here you know what i mean.
-        ObjectMessage objMsg = (ObjectMessage) msg;
-        BankInterestRequest request = null;
-        try {
-            request = (BankInterestRequest) objMsg.getObject();
-        } catch (JMSException e) {
-            e.printStackTrace();
-        }
+//        ObjectMessage objMsg = (ObjectMessage) msg;
+//        BankInterestRequest request = null;
+//        try {
+//            request = (BankInterestRequest) objMsg.getObject();
+//        } catch (JMSException e) {
+//            e.printStackTrace();
+//        }
         RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request, null);
        // JList<RequestReply<BankInterestRequest, BankInterestReply>> list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
         listModel.addElement(rr);

@@ -88,11 +88,11 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         return "";
     }
 
-    public String getCorrelationIdByObject(IN object){
+    public String getCorrelationIdByReceivedObject(IN object){
         return receivedItemsCorrelationMap.get(object);
     }
 
-    public String getMessageIdByObject(IN object){
+    public String getMessageIdByReceivedObject(IN object){
         return receivedItemsIdMap.get(object);
     }
 

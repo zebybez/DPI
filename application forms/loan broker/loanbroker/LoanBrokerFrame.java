@@ -8,10 +8,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.ObjectMessage;
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
 import javax.swing.JList;
@@ -144,7 +140,7 @@ public class LoanBrokerFrame extends JFrame {
 //        } catch (JMSException e) {
 //            e.printStackTrace();
 //        }
-        add(loanRequestMap.get(bankToClientGateway.getCorrelationIdByObject(reply)), reply);
+        add(loanRequestMap.get(bankToClientGateway.getCorrelationIdByReceivedObject(reply)), reply);
         LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
         //msgServiceBankToClient.sendMessage(loanReply);
         bankToClientGateway.createMessage(loanReply);
