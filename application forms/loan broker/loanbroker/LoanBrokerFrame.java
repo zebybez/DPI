@@ -32,12 +32,14 @@ public class LoanBrokerFrame extends JFrame {
     private JPanel contentPane;
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
-    private Map<String, LoanRequest> loanRequestMap;
 
     private MessageService msgServiceClientToBank;
     private MessageService msgServiceBankToClient;
     private ApplicationGateway<LoanRequest, BankInterestRequest> clientToBankGateway;
     private ApplicationGateway<BankInterestReply, LoanReply> bankToClientGateway;
+
+    private Map<String, String> correlationMap;
+    private Map<String, LoanRequest> requestMap;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -72,20 +74,20 @@ public class LoanBrokerFrame extends JFrame {
 //        });
         clientToBankGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST){
             @Override
-            public void parseMessage(Serializable object) {
+            public void parseMessage(Serializable object, String correlationId) {
                 System.out.println("loanBroker:received message from loanClient");
-                parseLoanRequest((LoanRequest) object);
+                parseLoanRequest((LoanRequest) object, correlationId);
             }
         };
         bankToClientGateway = new ApplicationGateway(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY){
             @Override
-            public void parseMessage(Serializable object) {
+            public void parseMessage(Serializable object, String correlationId) {
                 System.out.println("loanBroker:received message from bank");
-                parseBankInterestReply((BankInterestReply)object);
+                parseBankInterestReply((BankInterestReply)object, correlationId);
             }
         };
 
-        loanRequestMap = new HashMap<>();
+        correlationMap = new HashMap<>();
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -112,7 +114,7 @@ public class LoanBrokerFrame extends JFrame {
         scrollPane.setViewportView(list);
     }
 
-    private void parseLoanRequest(LoanRequest loanRequest) {
+    private void parseLoanRequest(LoanRequest loanRequest, String correlationId) {
         //todo create bankinterestrequest and send it to the bank
         System.out.println("we've arrived chief");
 //        ObjectMessage objMsg = (ObjectMessage) msg;
@@ -127,11 +129,13 @@ public class LoanBrokerFrame extends JFrame {
         add(loanRequest, interestRequest);
         //msgServiceClientToBank.sendMessage(interestRequest);
         clientToBankGateway.createMessage(interestRequest);
-        loanRequestMap.put(clientToBankGateway.getMessageId(), loanRequest);
+        correlationMap.put(clientToBankGateway.getMessageId(), correlationId);
+        requestMap.put(clientToBankGateway.getMessageId(), loanRequest);
+        clientToBankGateway.setCorrelationId(clientToBankGateway.getMessageId());
         clientToBankGateway.sendMessage();
     }
 
-    private void parseBankInterestReply(BankInterestReply reply) {
+    private void parseBankInterestReply(BankInterestReply reply, String correlationId) {
         //todo create loanreply and send it to loanclient
         System.out.println("they've returned, chief");
 //        ObjectMessage objMsg = (ObjectMessage) msg;
@@ -140,10 +144,11 @@ public class LoanBrokerFrame extends JFrame {
 //        } catch (JMSException e) {
 //            e.printStackTrace();
 //        }
-        add(loanRequestMap.get(bankToClientGateway.getCorrelationIdByReceivedObject(reply)), reply);
+        add(requestMap.get(correlationId), reply);
         LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
         //msgServiceBankToClient.sendMessage(loanReply);
         bankToClientGateway.createMessage(loanReply);
+        bankToClientGateway.setCorrelationId(correlationMap.get(correlationId));
         bankToClientGateway.sendMessage();
     }
 

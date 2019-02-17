@@ -7,6 +7,8 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -35,10 +37,11 @@ public class JMSBankFrame extends JFrame {
     private JPanel contentPane;
     private JTextField tfReply;
     private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
-
+    JList<RequestReply<BankInterestRequest, BankInterestReply>> list;
     private String quoteId;
 
     private ApplicationGateway<BankInterestRequest, BankInterestReply> appGateway;
+    private Map<BankInterestRequest, String> replyCorrelationMap;
 
     /**
      * Launch the application.
@@ -63,10 +66,11 @@ public class JMSBankFrame extends JFrame {
         quoteId = "ABN AMRO";
         appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST){
             @Override
-            public void parseMessage(Serializable object) {
-                parseInterestRequest((BankInterestRequest) object);
+            public void parseMessage(Serializable object, String correlationId) {
+                parseInterestRequest((BankInterestRequest) object, correlationId);
             }
         };
+        replyCorrelationMap = new HashMap<>();
         setTitle("JMS Bank - ABN AMRO");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -89,7 +93,7 @@ public class JMSBankFrame extends JFrame {
         gbc_scrollPane.gridy = 0;
         contentPane.add(scrollPane, gbc_scrollPane);
 
-        JList<RequestReply<BankInterestRequest, BankInterestReply>> list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
+        list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
         scrollPane.setViewportView(list);
 
         JLabel lblNewLabel = new JLabel("type reply");
@@ -113,18 +117,7 @@ public class JMSBankFrame extends JFrame {
         JButton btnSendReply = new JButton("send reply");
         btnSendReply.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
-                double interest = Double.parseDouble((tfReply.getText()));
-                BankInterestRequest request = rr.getRequest();
-                BankInterestReply reply = new BankInterestReply(interest, quoteId, request.getSsn());
-                if (rr != null && reply != null) {
-                    rr.setReply(reply);
-                    list.repaint();
-                    appGateway.createMessage(reply);
-                    appGateway.setCorrelationId(appGateway.getMessageIdByReceivedObject(request));
-                    appGateway.sendMessage();
-                    //todo: sent JMS message with the reply to Loan Broker
-                }
+                sendInterestReply();
             }
         });
         GridBagConstraints gbc_btnSendReply = new GridBagConstraints();
@@ -134,7 +127,22 @@ public class JMSBankFrame extends JFrame {
         contentPane.add(btnSendReply, gbc_btnSendReply);
     }
 
-    private void parseInterestRequest(BankInterestRequest request) {
+    private void sendInterestReply(){
+        RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
+        double interest = Double.parseDouble((tfReply.getText()));
+        BankInterestRequest request = rr.getRequest();
+        BankInterestReply reply = new BankInterestReply(interest, quoteId, request.getSsn());
+        if (rr != null && reply != null) {
+            rr.setReply(reply);
+            list.repaint();
+            appGateway.createMessage(reply);
+            appGateway.setCorrelationId(replyCorrelationMap.get(request));
+            appGateway.sendMessage();
+            //todo: sent JMS message with the reply to Loan Broker
+        }
+    }
+
+    private void parseInterestRequest(BankInterestRequest request, String correlationId) {
         //todo this thing here you know what i mean.
 //        ObjectMessage objMsg = (ObjectMessage) msg;
 //        BankInterestRequest request = null;
@@ -144,7 +152,7 @@ public class JMSBankFrame extends JFrame {
 //            e.printStackTrace();
 //        }
         RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request, null);
-       // JList<RequestReply<BankInterestRequest, BankInterestReply>> list = new JList<RequestReply<BankInterestRequest, BankInterestReply>>(listModel);
+        replyCorrelationMap.put(request, correlationId);
         listModel.addElement(rr);
 
     }

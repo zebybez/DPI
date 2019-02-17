@@ -24,7 +24,11 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         messageService = new MessageService(outgoing, incoming, new MessageListener() {
             @Override
             public void onMessage(Message message) {
-                parseMessage(getObjectFromMsg(message));
+                try {
+                    parseMessage(getObjectFromMsg(message), message.getJMSCorrelationID());
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -117,7 +121,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      * exposes the object gotten from an incoming message to the parent class;
      * @param object the object in the message
      */
-    public void parseMessage(IN object) {
+    public void parseMessage(IN object, String correlationId) {
         throw new IllegalStateException("this method should be overridden");
     }
 }
