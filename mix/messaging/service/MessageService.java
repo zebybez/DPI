@@ -38,7 +38,6 @@ public class MessageService {
         }
     }
 
-
     public Session getSession() {
         return session;
     }
@@ -67,14 +66,4 @@ public class MessageService {
         }
 
     }
-
-    public boolean startConnection() {
-        return false;
-    }
-
-    public boolean stopConnection() {
-        return false;
-    }
-
-
 }

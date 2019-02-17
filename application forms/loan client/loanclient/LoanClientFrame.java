@@ -159,18 +159,15 @@ public class LoanClientFrame extends JFrame {
         listModel.addElement(new RequestReply<LoanRequest, LoanReply>(request, null));
         appGateway.createMessage(request);
         loanRequestMap.put(appGateway.getMessageId(), request);
+        System.out.println("MARCO! " + appGateway.getMessageId());
         appGateway.sendMessage();
     }
 
     private void parseMessage(LoanReply loanReply, String correlationId) {
-//        ObjectMessage objMsg = (ObjectMessage) msg;
-//        try {
-//            listModel.set(index, rr);
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
+        System.out.println("POLO! " + correlationId);
         RequestReply rr = getRequestReply(loanRequestMap.get(correlationId));
         rr.setReply(loanReply);
+        requestReplyList.repaint();
     }
 
     /**

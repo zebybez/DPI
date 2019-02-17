@@ -86,7 +86,7 @@ public class LoanBrokerFrame extends JFrame {
                 parseBankInterestReply((BankInterestReply)object, correlationId);
             }
         };
-
+        requestMap = new HashMap<>();
         correlationMap = new HashMap<>();
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -115,19 +115,9 @@ public class LoanBrokerFrame extends JFrame {
     }
 
     private void parseLoanRequest(LoanRequest loanRequest, String correlationId) {
-        //todo create bankinterestrequest and send it to the bank
-        System.out.println("we've arrived chief");
-//        ObjectMessage objMsg = (ObjectMessage) msg;
-//        try {
-//            LoanRequest loanRequest = (LoanRequest) objMsg.getObject();
-//
-//        } catch (JMSException | ClassCastException e) {
-//            e.printStackTrace();
-//        }
         add(loanRequest);
         BankInterestRequest interestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime(), loanRequest.getSsn());
         add(loanRequest, interestRequest);
-        //msgServiceClientToBank.sendMessage(interestRequest);
         clientToBankGateway.createMessage(interestRequest);
         correlationMap.put(clientToBankGateway.getMessageId(), correlationId);
         requestMap.put(clientToBankGateway.getMessageId(), loanRequest);
@@ -136,17 +126,8 @@ public class LoanBrokerFrame extends JFrame {
     }
 
     private void parseBankInterestReply(BankInterestReply reply, String correlationId) {
-        //todo create loanreply and send it to loanclient
-        System.out.println("they've returned, chief");
-//        ObjectMessage objMsg = (ObjectMessage) msg;
-//        try {
-//            BankInterestReply reply = (BankInterestReply) objMsg.getObject();
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
         add(requestMap.get(correlationId), reply);
         LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
-        //msgServiceBankToClient.sendMessage(loanReply);
         bankToClientGateway.createMessage(loanReply);
         bankToClientGateway.setCorrelationId(correlationMap.get(correlationId));
         bankToClientGateway.sendMessage();

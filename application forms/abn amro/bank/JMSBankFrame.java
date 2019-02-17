@@ -138,23 +138,14 @@ public class JMSBankFrame extends JFrame {
             appGateway.createMessage(reply);
             appGateway.setCorrelationId(replyCorrelationMap.get(request));
             appGateway.sendMessage();
-            //todo: sent JMS message with the reply to Loan Broker
         }
     }
 
     private void parseInterestRequest(BankInterestRequest request, String correlationId) {
-        //todo this thing here you know what i mean.
-//        ObjectMessage objMsg = (ObjectMessage) msg;
-//        BankInterestRequest request = null;
-//        try {
-//            request = (BankInterestRequest) objMsg.getObject();
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
         RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request, null);
         replyCorrelationMap.put(request, correlationId);
         listModel.addElement(rr);
-
+        list.repaint();
     }
 
 }
