@@ -7,12 +7,11 @@ import javax.jms.ObjectMessage;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-
+//todo make special serializer instead of object messages.
 public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
     private MessageService messageService;
     private Message message;
-    private OUT sendingObj;
 
     public ApplicationGateway(Destinations outgoing, Destinations incoming) {
         messageService = new MessageService(outgoing, incoming, new MessageListener() {
@@ -33,7 +32,6 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      */
     public void createMessage(OUT object) {
         try {
-            sendingObj = object;
             message = messageService.getSession().createObjectMessage(object);
         } catch (JMSException e) {
             e.printStackTrace();
