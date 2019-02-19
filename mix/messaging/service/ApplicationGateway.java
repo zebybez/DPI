@@ -7,24 +7,21 @@ import javax.jms.ObjectMessage;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-
+//todo make special serializer instead of object messages.
 public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
-    private Map<String, OUT> sendItemsMap;
-    private Map<IN, String> receivedItemsIdMap;
-    private Map<IN, String> receivedItemsCorrelationMap;
     private MessageService messageService;
     private Message message;
-    private OUT sendingObj;
 
     public ApplicationGateway(Destinations outgoing, Destinations incoming) {
-        sendItemsMap = new HashMap<>();
-        receivedItemsIdMap = new HashMap<>();
-        receivedItemsCorrelationMap = new HashMap<>();
         messageService = new MessageService(outgoing, incoming, new MessageListener() {
             @Override
             public void onMessage(Message message) {
-                parseMessage(getObjectFromMsg(message));
+                try {
+                    parseMessage(getObjectFromMsg(message), message.getJMSCorrelationID());
+                } catch (JMSException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -35,7 +32,6 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      */
     public void createMessage(OUT object) {
         try {
-            sendingObj = object;
             message = messageService.getSession().createObjectMessage(object);
         } catch (JMSException e) {
             e.printStackTrace();
@@ -47,12 +43,9 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      */
     public void sendMessage() {
         try {
-            sendItemsMap.put(message.getJMSMessageID(), sendingObj);
             messageService.sendMessage(message);
         } catch (NullPointerException e) {
             System.out.println("instantiate the message first using the \"createMessage\" Method");
-            e.printStackTrace();
-        } catch (JMSException e){
             e.printStackTrace();
         }
     }
@@ -88,24 +81,10 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         return "";
     }
 
-    public String getCorrelationIdByReceivedObject(IN object){
-        return receivedItemsCorrelationMap.get(object);
-    }
-
-    public String getMessageIdByReceivedObject(IN object){
-        return receivedItemsIdMap.get(object);
-    }
-
-    public OUT getSendObjectByMessageId(String id){
-        return sendItemsMap.get(id);
-    }
-
     private IN getObjectFromMsg(Message message) {
         ObjectMessage objMsg = (ObjectMessage) message;
         try {
             IN object = (IN) objMsg.getObject();
-            receivedItemsCorrelationMap.put(object, message.getJMSCorrelationID());
-            receivedItemsIdMap.put(object, message.getJMSMessageID());
             return object;
         } catch (JMSException e) {
             e.printStackTrace();
@@ -117,7 +96,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      * exposes the object gotten from an incoming message to the parent class;
      * @param object the object in the message
      */
-    public void parseMessage(IN object) {
+    public void parseMessage(IN object, String correlationId) {
         throw new IllegalStateException("this method should be overridden");
     }
 }

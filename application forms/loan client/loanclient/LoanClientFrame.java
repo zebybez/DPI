@@ -12,6 +12,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoanClientFrame extends JFrame {
 
@@ -30,6 +32,7 @@ public class LoanClientFrame extends JFrame {
     private JTextField tfTime;
 
     private ApplicationGateway<LoanReply, LoanRequest> appGateway;
+    private Map<String, LoanRequest> loanRequestMap;
 
     /**
      * Create the frame.
@@ -37,10 +40,11 @@ public class LoanClientFrame extends JFrame {
     public LoanClientFrame() {
         appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY) {
             @Override
-            public void parseMessage(Serializable object) {
-                LoanClientFrame.this.parseMessage((LoanReply) object);
+            public void parseMessage(Serializable object, String correlationId) {
+                LoanClientFrame.this.parseMessage((LoanReply) object, correlationId);
             }
         };
+        loanRequestMap = new HashMap<>();
         setTitle("Loan Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 684, 619);
@@ -108,16 +112,7 @@ public class LoanClientFrame extends JFrame {
         JButton btnQueue = new JButton("send loan request");
         btnQueue.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
-                int ssn = Integer.parseInt(tfSSN.getText());
-                int amount = Integer.parseInt(tfAmount.getText());
-                int time = Integer.parseInt(tfTime.getText());
-
-                LoanRequest request = new LoanRequest(ssn, amount, time);
-
-                listModel.addElement(new RequestReply<LoanRequest, LoanReply>(request, null));
-                appGateway.createMessage(request);
-                appGateway.sendMessage();
-
+                sendMessage();
             }
         });
         GridBagConstraints gbc_btnQueue = new GridBagConstraints();
@@ -154,16 +149,25 @@ public class LoanClientFrame extends JFrame {
         });
     }
 
-    private void parseMessage(LoanReply loanReply) {
-//        ObjectMessage objMsg = (ObjectMessage) msg;
-//        try {
-//            listModel.set(index, rr);
-//        } catch (JMSException e) {
-//            e.printStackTrace();
-//        }
+    private void sendMessage(){
+        int ssn = Integer.parseInt(tfSSN.getText());
+        int amount = Integer.parseInt(tfAmount.getText());
+        int time = Integer.parseInt(tfTime.getText());
 
-        RequestReply rr = getRequestReply(appGateway.getSendObjectByMessageId(appGateway.getMessageIdByReceivedObject(loanReply)));
+        LoanRequest request = new LoanRequest(ssn, amount, time);
+
+        listModel.addElement(new RequestReply<LoanRequest, LoanReply>(request, null));
+        appGateway.createMessage(request);
+        loanRequestMap.put(appGateway.getMessageId(), request);
+        System.out.println("MARCO! " + appGateway.getMessageId());
+        appGateway.sendMessage();
+    }
+
+    private void parseMessage(LoanReply loanReply, String correlationId) {
+        System.out.println("POLO! " + correlationId);
+        RequestReply rr = getRequestReply(loanRequestMap.get(correlationId));
         rr.setReply(loanReply);
+        requestReplyList.repaint();
     }
 
     /**

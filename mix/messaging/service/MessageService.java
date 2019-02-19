@@ -4,7 +4,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 
 import javax.jms.*;
 import java.io.Serializable;
-
+//todo split up in sending and receiving parts
 public class MessageService {
 
     Connection connection; // to connect to the ActiveMQ
@@ -38,7 +38,6 @@ public class MessageService {
         }
     }
 
-
     public Session getSession() {
         return session;
     }
@@ -67,14 +66,4 @@ public class MessageService {
         }
 
     }
-
-    public boolean startConnection() {
-        return false;
-    }
-
-    public boolean stopConnection() {
-        return false;
-    }
-
-
 }
