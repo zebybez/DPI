@@ -42,6 +42,7 @@ public class LoanBrokerFrame extends JFrame {
     private Map<String, String> correlationMap;
     private Map<String, LoanRequest> requestMap;
     private Map<String, Integer> outToBankAmountMap;
+    private Map<String, List<BankInterestReply>> aggregationIdBankInterestReplyMap;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -88,6 +89,7 @@ public class LoanBrokerFrame extends JFrame {
                 parseBankInterestReply((BankInterestReply)object, correlationId);
             }
         };
+        aggregationIdBankInterestReplyMap = new HashMap<>();
         loanHandler = new LoanHandler();
         requestMap = new HashMap<>();
         correlationMap = new HashMap<>();
@@ -129,8 +131,11 @@ public class LoanBrokerFrame extends JFrame {
 
         String aggregationId = UUID.randomUUID().toString();
         requestMap.put(aggregationId, loanRequest);
+        aggregationIdBankInterestReplyMap.put(aggregationId,new ArrayList<>());
 
-        sendToMultipleBank(loanHandler.check(loanRequest.getAmount(), loanRequest.getTime()),interestRequest,aggregationId,correlationId);
+        List<String> banks = loanHandler.check(loanRequest.getAmount(), loanRequest.getTime());
+        //todo if banks empty, send denied reply.
+        sendToMultipleBank(banks,interestRequest,aggregationId,correlationId);
 
 
 
@@ -151,13 +156,41 @@ public class LoanBrokerFrame extends JFrame {
     }
 
     private void parseBankInterestReply(BankInterestReply reply, String correlationId) {
+        String aggroId = reply.getAggregrationId();
 
-        add(requestMap.get(reply.getAggregrationId()), reply);
-        LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
-        bankToClientGateway.createMessage(loanReply);
-        bankToClientGateway.setCorrelationId(correlationMap.get(reply.getAggregrationId()));
-        bankToClientGateway.sendMessage();
+        add(requestMap.get(aggroId), reply);
+
+        aggregationIdBankInterestReplyMap.get(aggroId).add(reply);
+
+        if(aggregationIdBankInterestReplyMap.get(aggroId).size() == outToBankAmountMap.get(aggroId)){
+
+            LoanReply loanReply = chooseTheBest(aggroId);
+            bankToClientGateway.createMessage(loanReply);
+            bankToClientGateway.setCorrelationId(correlationMap.get(reply.getAggregrationId()));
+            bankToClientGateway.sendMessage();
+        }
+
+
+
+
+
     }
+
+    private LoanReply chooseTheBest(String id){
+        BankInterestReply theChosenOne = null;
+        double interest = 0;
+        for(BankInterestReply bae : aggregationIdBankInterestReplyMap.get(id)){
+
+            if(bae.getInterest() > interest){
+                interest = bae.getInterest();
+                theChosenOne = bae;
+            }
+        }
+
+        return new LoanReply(theChosenOne.getInterest(), theChosenOne.getQuoteId(), theChosenOne.getSsn());
+    }
+
+
 
     private JListLine getRequestReply(LoanRequest request) {
 

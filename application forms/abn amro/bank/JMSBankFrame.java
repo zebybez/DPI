@@ -40,7 +40,7 @@ public class JMSBankFrame extends JFrame {
     private String quoteId;
 
     private ApplicationGateway<BankInterestRequest, BankInterestReply> appGateway;
-    private Map<BankInterestRequest, String> replyCorrelationMap;
+    private Map<BankInterestRequest, String> replyAggregationMap;
 
 
     /**
@@ -72,7 +72,7 @@ public class JMSBankFrame extends JFrame {
                 parseInterestRequest((BankInterestRequest) object, correlationId);
             }
         };
-        replyCorrelationMap = new HashMap<>();
+        replyAggregationMap = new HashMap<>();
         setTitle(bank);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -137,15 +137,15 @@ public class JMSBankFrame extends JFrame {
         if (rr != null && reply != null) {
             rr.setReply(reply);
             list.repaint();
+            reply.setAggregrationId(replyAggregationMap.get(request));
             appGateway.createMessage(reply);
-            appGateway.setCorrelationId(replyCorrelationMap.get(request));
             appGateway.sendMessage();
         }
     }
 
     private void parseInterestRequest(BankInterestRequest request, String correlationId) {
         RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request, null);
-        replyCorrelationMap.put(request, correlationId);
+        replyAggregationMap.put(request, request.getAggregationId());
         listModel.addElement(rr);
         list.repaint();
     }
