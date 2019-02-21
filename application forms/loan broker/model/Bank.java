@@ -4,11 +4,17 @@ public class Bank {
     private int minAmount;
     private int maxAmount;
     private int loanTime;
+    private String bankName;
 
-    public Bank(int minAmount, int maxAmount, int loanTime) {
+    public Bank(String bankName, int minAmount, int maxAmount, int loanTime) {
         this.minAmount = minAmount;
         this.maxAmount = maxAmount;
         this.loanTime = loanTime;
+        this.bankName = bankName;
+    }
+
+    public String getBankName() {
+        return bankName;
     }
 
     public int getMinAmount() {

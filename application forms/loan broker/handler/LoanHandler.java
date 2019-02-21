@@ -1,16 +1,21 @@
 package handler;
 
-public class LoanHandler implements iHandleThatShit {
+import loanbroker.Config;
+import model.Bank;
 
-    @Override
-    public String[] check(int amount, int time) {
+import java.util.ArrayList;
+import java.util.List;
 
-        //todo ga door list vn const
+public class LoanHandler{
 
-        String[] banks = { "BANO", "HOL"};
+    public List<String> check(int amount, int time) {
 
-
-
-        return null;
+        List<String> acceptedBanks = new ArrayList<>();
+        for (Bank bank : Config.getList()) {
+            if (amount >= bank.getMinAmount() && amount <= bank.getMaxAmount() && time <= bank.getLoanTime()) {
+                acceptedBanks.add(bank.getBankName());
+            }
+        }
+        return acceptedBanks;
     }
 }

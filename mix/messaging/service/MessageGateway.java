@@ -5,7 +5,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import javax.jms.*;
 import java.io.Serializable;
 //todo split up in sending and receiving parts
-public class MessageService {
+public class MessageGateway {
 
     Connection connection; // to connect to the ActiveMQ
     Session session; // session for creating messages, producers and
@@ -18,7 +18,7 @@ public class MessageService {
 
     MessageListener listener; // listens for messages
 
-    public MessageService(Destinations outgoing, Destinations incoming, MessageListener listener) {
+    public MessageGateway(String outgoing, String incoming, MessageListener listener) {
         ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616");
         connectionFactory.setTrustAllPackages(true);
         try {
@@ -26,11 +26,8 @@ public class MessageService {
             connection.start();
 
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            destination = session.createQueue(outgoing.toString());
-            recieveDestination = session.createQueue(incoming.toString());
-
-            producer = session.createProducer(destination);
-            consumer = session.createConsumer(recieveDestination);
+            setOutgoingQueue(outgoing);
+            setIncomingQueue(incoming);
             consumer.setMessageListener(listener);
 
         } catch (JMSException e) {
@@ -44,6 +41,7 @@ public class MessageService {
 
     public boolean sendMessage(Message objMsg) {
         try {
+
             String test = objMsg.getJMSMessageID();
             producer.send(objMsg);
             return true;
@@ -65,5 +63,24 @@ public class MessageService {
             e.printStackTrace();
         }
 
+    }
+
+    public void setOutgoingQueue(String queue) {
+
+        try {
+            destination = session.createQueue(queue);
+            producer = session.createProducer(destination);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+
+    }
+    public void setIncomingQueue(String queue){
+        try {
+            recieveDestination = session.createQueue(queue);
+            consumer = session.createConsumer(recieveDestination);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
     }
 }

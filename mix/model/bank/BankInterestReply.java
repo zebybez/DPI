@@ -11,6 +11,15 @@ public class BankInterestReply implements Serializable {
     private double interest; // the loan interest
     private String bankId; // the nunique quote Id
     private int ssn;
+    private String aggregrationId;
+
+    public String getAggregrationId() {
+        return aggregrationId;
+    }
+
+    public void setAggregrationId(String aggregrationId) {
+        this.aggregrationId = aggregrationId;
+    }
 
     public int getSsn() {
         return ssn;

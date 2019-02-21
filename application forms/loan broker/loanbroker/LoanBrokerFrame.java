@@ -5,10 +5,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JFrame;
@@ -17,10 +14,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
-import handler.iHandleThatShit;
+import handler.LoanHandler;
 import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
-import messaging.service.MessageService;
+import messaging.service.MessageGateway;
 import model.bank.*;
 import model.loan.LoanReply;
 import model.loan.LoanRequest;
@@ -36,14 +33,15 @@ public class LoanBrokerFrame extends JFrame {
     private DefaultListModel<JListLine> listModel = new DefaultListModel<JListLine>();
     private JList<JListLine> list;
 
-    private MessageService msgServiceClientToBank;
-    private MessageService msgServiceBankToClient;
+    private MessageGateway msgServiceClientToBank;
+    private MessageGateway msgServiceBankToClient;
     private ApplicationGateway<LoanRequest, BankInterestRequest> clientToBankGateway;
     private ApplicationGateway<BankInterestReply, LoanReply> bankToClientGateway;
+    private LoanHandler loanHandler;
 
     private Map<String, String> correlationMap;
     private Map<String, LoanRequest> requestMap;
-    private List<iHandleThatShit> handlers = new ArrayList<>();
+    private Map<String, Integer> outToBankAmountMap;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -63,35 +61,37 @@ public class LoanBrokerFrame extends JFrame {
      * Create the frame.
      */
     public LoanBrokerFrame() {
-//        msgServiceClientToBank = new MessageService(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
+//        msgServiceClientToBank = new MessageGateway(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST, new MessageListener() {
 //            @Override
 //            public void onMessage(Message msg) {
 //                parseLoanRequest(msg);
 //            }
 //        });
-//        msgServiceBankToClient = new MessageService(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY, new MessageListener() {
+//        msgServiceBankToClient = new MessageGateway(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY, new MessageListener() {
 //            @Override
 //            public void onMessage(Message msg) {
 //                System.out.println("loanBroker:received message from bank: " + msg);
 //                parseBankInterestReply(msg);
 //            }
 //        });
-        clientToBankGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REQUEST, Destinations.LOAN_REQUEST){
+        clientToBankGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REQUEST.toString(), Destinations.LOAN_REQUEST.toString()){
             @Override
             public void parseMessage(Serializable object, String correlationId) {
                 System.out.println("loanBroker:received message from loanClient");
                 parseLoanRequest((LoanRequest) object, correlationId);
             }
         };
-        bankToClientGateway = new ApplicationGateway(Destinations.LOAN_REQUEST_REPLY, Destinations.BANK_INTEREST_REPLY){
+        bankToClientGateway = new ApplicationGateway(Destinations.LOAN_REQUEST_REPLY.toString(), Destinations.BANK_INTEREST_REPLY.toString()){
             @Override
             public void parseMessage(Serializable object, String correlationId) {
                 System.out.println("loanBroker:received message from bank");
                 parseBankInterestReply((BankInterestReply)object, correlationId);
             }
         };
+        loanHandler = new LoanHandler();
         requestMap = new HashMap<>();
         correlationMap = new HashMap<>();
+        outToBankAmountMap = new HashMap<>();
         setTitle("Loan Broker");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
@@ -122,30 +122,40 @@ public class LoanBrokerFrame extends JFrame {
         add(loanRequest);
         BankInterestRequest interestRequest = new BankInterestRequest(loanRequest.getAmount(), loanRequest.getTime(), loanRequest.getSsn());
         add(loanRequest, interestRequest);
-        clientToBankGateway.createMessage(interestRequest);
-        correlationMap.put(clientToBankGateway.getMessageId(), correlationId);
-        requestMap.put(clientToBankGateway.getMessageId(), loanRequest);
-        clientToBankGateway.setCorrelationId(clientToBankGateway.getMessageId());
-        clientToBankGateway.sendMessage();
+//        clientToBankGateway.createMessage(interestRequest);
+//        requestMap.put(clientToBankGateway.getMessageId(), loanRequest);
+//        clientToBankGateway.setCorrelationId(clientToBankGateway.getMessageId());
+//        clientToBankGateway.sendMessage();
 
-        //
-//        boolean messageHandled = false;
-//        for (iHandleThatShit handler : this.handlers) {
-//            if (!messageHandled) {
-//                messageHandled = handler.handleMessage(message);
-//            }
-//        }
-//
-//        if (!messageHandled) {
-//            System.out.println("Message could not be handled by any handler");
-//        }
+        String aggregationId = UUID.randomUUID().toString();
+        requestMap.put(aggregationId, loanRequest);
+
+        sendToMultipleBank(loanHandler.check(loanRequest.getAmount(), loanRequest.getTime()),interestRequest,aggregationId,correlationId);
+
+
+
+    }
+
+    private void sendToMultipleBank(List<String> bankList, BankInterestRequest interestRequest, String aggregationId, String correlationId){
+        outToBankAmountMap.put(aggregationId, bankList.size());
+        correlationMap.put(aggregationId, correlationId);
+        for(String bank : bankList){
+            interestRequest.setAggregationId(aggregationId);
+
+            clientToBankGateway.createMessage(interestRequest);
+            clientToBankGateway.setCorrelationId(correlationId);
+            clientToBankGateway.setOutgoingQueue(Destinations.BANK_INTEREST_REQUEST+bank);
+            clientToBankGateway.sendMessage();
+        }
+
     }
 
     private void parseBankInterestReply(BankInterestReply reply, String correlationId) {
-        add(requestMap.get(correlationId), reply);
+
+        add(requestMap.get(reply.getAggregrationId()), reply);
         LoanReply loanReply = new LoanReply(reply.getInterest(), reply.getQuoteId(), reply.getSsn());
         bankToClientGateway.createMessage(loanReply);
-        bankToClientGateway.setCorrelationId(correlationMap.get(correlationId));
+        bankToClientGateway.setCorrelationId(correlationMap.get(reply.getAggregrationId()));
         bankToClientGateway.sendMessage();
     }
 

@@ -38,7 +38,7 @@ public class LoanClientFrame extends JFrame {
      * Create the frame.
      */
     public LoanClientFrame() {
-        appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST, Destinations.LOAN_REQUEST_REPLY) {
+        appGateway = new ApplicationGateway(Destinations.LOAN_REQUEST.toString(), Destinations.LOAN_REQUEST_REPLY.toString()) {
             @Override
             public void parseMessage(Serializable object, String correlationId) {
                 LoanClientFrame.this.parseMessage((LoanReply) object, correlationId);

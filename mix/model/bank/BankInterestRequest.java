@@ -12,6 +12,15 @@ public class BankInterestRequest implements Serializable {
     private int amount; // the requested loan amount
     private int time; // the requested loan period
     private int ssn;
+    private String aggregationId;
+
+    public String getAggregationId() {
+        return aggregationId;
+    }
+
+    public void setAggregationId(String aggregationId) {
+        this.aggregationId = aggregationId;
+    }
 
     public int getSsn() {
         return ssn;

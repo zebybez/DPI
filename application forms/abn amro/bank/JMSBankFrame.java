@@ -20,8 +20,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import loanbroker.Config;
 import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
+import model.Bank;
 import model.bank.*;
 import messaging.requestreply.RequestReply;
 
@@ -39,17 +41,17 @@ public class JMSBankFrame extends JFrame {
 
     private ApplicationGateway<BankInterestRequest, BankInterestReply> appGateway;
     private Map<BankInterestRequest, String> replyCorrelationMap;
-    private static String[] banks = {"ABN_AMRO", "ING", "RABO_BANK"};
+
 
     /**
      * Launch the application.
      */
     public static void main(String[] args) {
-        for(String s : banks){
+        for(Bank s : Config.getList()){
             EventQueue.invokeLater(new Runnable() {
                 public void run() {
                     try {
-                        JMSBankFrame frame = new JMSBankFrame(s);
+                        JMSBankFrame frame = new JMSBankFrame(s.getBankName());
                         frame.setVisible(true);
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -64,7 +66,7 @@ public class JMSBankFrame extends JFrame {
      */
     public JMSBankFrame(String bank) {
         quoteId = bank;
-        appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST){
+        appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY.toString(), Destinations.BANK_INTEREST_REQUEST.toString()+bank){
             @Override
             public void parseMessage(Serializable object, String correlationId) {
                 parseInterestRequest((BankInterestRequest) object, correlationId);

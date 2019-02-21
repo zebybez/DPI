@@ -5,16 +5,15 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.ObjectMessage;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-//todo make special serializer instead of object messages.
-public class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
 
-    private MessageService messageService;
+//todo make special serializer instead of object messages.
+public abstract class ApplicationGateway<IN extends Serializable, OUT extends Serializable> {
+
+    private MessageGateway messageGateway;
     private Message message;
 
-    public ApplicationGateway(Destinations outgoing, Destinations incoming) {
-        messageService = new MessageService(outgoing, incoming, new MessageListener() {
+    public ApplicationGateway(String outgoing, String incoming) {
+        messageGateway = new MessageGateway(outgoing, incoming, new MessageListener() {
             @Override
             public void onMessage(Message message) {
                 try {
@@ -26,13 +25,29 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
         });
     }
 
+    public void setAggregationId(String id){
+        try {
+            message.setStringProperty("aggregation", id);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void setOutgoingQueue(String string){
+        messageGateway.setOutgoingQueue(string);
+    }
+
+    public void setIncomingQueue(String string){
+        messageGateway.setIncomingQueue(string);
+    }
+
     /***
      * creates a message to later be sent
      * @param object the object to put in the message
      */
     public void createMessage(OUT object) {
         try {
-            message = messageService.getSession().createObjectMessage(object);
+            message = messageGateway.getSession().createObjectMessage(object);
         } catch (JMSException e) {
             e.printStackTrace();
         }
@@ -43,7 +58,7 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      */
     public void sendMessage() {
         try {
-            messageService.sendMessage(message);
+            messageGateway.sendMessage(message);
         } catch (NullPointerException e) {
             System.out.println("instantiate the message first using the \"createMessage\" Method");
             e.printStackTrace();
@@ -96,7 +111,5 @@ public class ApplicationGateway<IN extends Serializable, OUT extends Serializabl
      * exposes the object gotten from an incoming message to the parent class;
      * @param object the object in the message
      */
-    public void parseMessage(IN object, String correlationId) {
-        throw new IllegalStateException("this method should be overridden");
-    }
+    public abstract void parseMessage(IN object, String correlationId);
 }
