@@ -10,9 +10,6 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.ObjectMessage;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -42,28 +39,31 @@ public class JMSBankFrame extends JFrame {
 
     private ApplicationGateway<BankInterestRequest, BankInterestReply> appGateway;
     private Map<BankInterestRequest, String> replyCorrelationMap;
+    private static String[] banks = {"ABN_AMRO", "ING", "RABO_BANK"};
 
     /**
      * Launch the application.
      */
     public static void main(String[] args) {
-        EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                try {
-                    JMSBankFrame frame = new JMSBankFrame();
-                    frame.setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
+        for(String s : banks){
+            EventQueue.invokeLater(new Runnable() {
+                public void run() {
+                    try {
+                        JMSBankFrame frame = new JMSBankFrame(s);
+                        frame.setVisible(true);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**
      * Create the frame.
      */
-    public JMSBankFrame() {
-        quoteId = "ABN AMRO";
+    public JMSBankFrame(String bank) {
+        quoteId = bank;
         appGateway = new ApplicationGateway(Destinations.BANK_INTEREST_REPLY, Destinations.BANK_INTEREST_REQUEST){
             @Override
             public void parseMessage(Serializable object, String correlationId) {
@@ -71,7 +71,7 @@ public class JMSBankFrame extends JFrame {
             }
         };
         replyCorrelationMap = new HashMap<>();
-        setTitle("JMS Bank - ABN AMRO");
+        setTitle(bank);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 450, 300);
         contentPane = new JPanel();

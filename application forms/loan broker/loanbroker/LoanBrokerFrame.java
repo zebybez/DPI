@@ -5,7 +5,9 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.DefaultListModel;
@@ -15,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.border.EmptyBorder;
 
+import handler.iHandleThatShit;
 import messaging.service.ApplicationGateway;
 import messaging.service.Destinations;
 import messaging.service.MessageService;
@@ -40,6 +43,7 @@ public class LoanBrokerFrame extends JFrame {
 
     private Map<String, String> correlationMap;
     private Map<String, LoanRequest> requestMap;
+    private List<iHandleThatShit> handlers = new ArrayList<>();
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -123,6 +127,18 @@ public class LoanBrokerFrame extends JFrame {
         requestMap.put(clientToBankGateway.getMessageId(), loanRequest);
         clientToBankGateway.setCorrelationId(clientToBankGateway.getMessageId());
         clientToBankGateway.sendMessage();
+
+        //
+//        boolean messageHandled = false;
+//        for (iHandleThatShit handler : this.handlers) {
+//            if (!messageHandled) {
+//                messageHandled = handler.handleMessage(message);
+//            }
+//        }
+//
+//        if (!messageHandled) {
+//            System.out.println("Message could not be handled by any handler");
+//        }
     }
 
     private void parseBankInterestReply(BankInterestReply reply, String correlationId) {
@@ -162,7 +178,6 @@ public class LoanBrokerFrame extends JFrame {
         JListLine rr = getRequestReply(loanRequest);
         if (rr != null && bankReply != null) {
             rr.setBankReply(bankReply);
-            ;
             list.repaint();
         }
     }
